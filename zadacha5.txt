@@ -1,0 +1,38 @@
+ int x = Math.min(super.getStartX(),super.getEndX());
+          int y = Math.min(super.getStartY(),super.getEndY());
+           g2d.setColor(super.getFillColor());
+           g2d.fillOval(x,y,super.getHeight(),super.getHeight());
+          g2d.setColor(super.getStrokeColor());
+        g2d.setStroke(new BasicStroke(super.getStrokeThickness()));
+        g2d.drawOval(x,y,super.getHeight(),super.getHeight());
+          g2d.drawLine(x+super.getHeight()/2,y,x+super.getHeight()/2,y+super.getHeight());
+          int radius = super.getHeight()/2;
+          double dg = 220.0;
+          double rad = Math.toRadians(dg);
+            double Sina = Math.sin(rad);
+            double Cosa =Math.cos(rad);
+          int sr = new Double(Sina*radius).intValue();
+          int cr = new Double(Cosa*radius).intValue();
+     g2d.drawLine(x,y+super.getHeight()/2,x+super.getHeight(),y+super.getHeight()/2);
+         double dg1 = 320.0;
+          double radb = Math.toRadians(dg1);
+            double Sinb = Math.sin(radb);
+        double Cosb =Math.cos(radb);
+        int srb = new Double(Sinb*radius).intValue();
+         int crb = new Double(Cosb*radius).intValue();
+        g2d.drawLine(x+super.getHeight()/2+cr,y+super.getHeight()/2+sr, (x+super.getHeight()/2)+crb,(y+super.getHeight()/2)+srb);
+              double dgc = 140.0;
+            double radc = Math.toRadians(dgc);
+            double Sinc = Math.sin(radc);
+            double Cosc =Math.cos(radc);
+          int src = new Double(Sinc*radius).intValue();
+          int crc = new Double(Cosc*radius).intValue();
+    
+              double dgd = 40.0;
+            double radd = Math.toRadians(dgd);
+            double Sind = Math.sin(radd);
+            double Cosd =Math.cos(radd);
+          int srd = new Double(Sind*radius).intValue();
+          int crd = new Double(Cosd*radius).intValue();
+     
+            g2d.drawLine((x+super.getHeight()/2)+crc,(y+super.getHeight()/2)+src,(x+super.getHeight()/2)+crd,(y+super.getHeight()/2)+srd );

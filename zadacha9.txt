@@ -1,0 +1,13 @@
+ int x = Math.min(super.getStartX(),super.getEndX());
+         int y = Math.min(super.getStartY(),super.getEndY());
+        g2d.setColor(super.getFillColor());
+         g2d.setStroke(new BasicStroke(super.getStrokeThickness()));
+        g2d.fillRect(x,y,super.getWidth(),super.getHeight());
+        g2d.setColor(super.getStrokeColor());
+        g2d.drawLine(x+super.getWidth()/2, super.getStartY(), super.getStartX(), y+super.getHeight()/2);
+         g2d.drawLine(super.getStartX(), y+super.getHeight()/2,x+super.getWidth()/2,super.getEndY());
+         g2d.drawLine(x+super.getWidth()/2, super.getStartY(), super.getEndX(), y+super.getHeight()/2);
+         g2d.drawLine(x+super.getWidth()/2,super.getEndY(),super.getEndX(), y+super.getHeight()/2);
+          g2d.drawLine(super.getStartX(), y+super.getHeight()/2,super.getEndX(), y+super.getHeight()/2);
+          g2d.drawLine(x+super.getWidth()/2, super.getStartY(), x+super.getWidth()/2, y+super.getHeight()/2);
+       
