@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="bg" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOTO Генератор</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Enable class-based dark mode in Tailwind
+    tailwind.config = {
+      darkMode: 'class'
+    };
+  </script>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+  <div class="max-w-3xl w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl shadow-lg p-6 space-y-6 transition-colors duration-300">
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-bold">🎲 Генератор за Тото комбинации</h1>
+      <button id="themeToggle" class="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:opacity-80 transition">
+        🌙 / ☀️
+      </button>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <label class="font-medium">Игра</label>
+        <select id="game" class="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-700 dark:border-slate-600">
+          <option value="6/49">6 от 49</option>
+          <option value="5/35">5 от 35</option>
+          <option value="6/42">6 от 42</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="font-medium">Брой колонки (1–4)</label>
+        <input id="columns" type="number" min="1" max="4" value="4" class="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-700 dark:border-slate-600" />
+      </div>
+    </div>
+
+    <div>
+      <label class="font-medium">Допълнителна случайност ("сол" за seed)</label>
+      <input id="salt" type="text" placeholder="Напиши произволен текст..." class="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-700 dark:border-slate-600" />
+    </div>
+
+    <button id="generate" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition">
+      Генерирай числа
+    </button>
+
+    <div id="seedInfo" class="text-sm text-gray-500 dark:text-gray-400 text-center"></div>
+
+    <div id="results" class="grid md:grid-cols-2 gap-4"></div>
+  </div>
+
+<script>
+// ================= DARK MODE =================
+const root = document.documentElement;
+const toggleBtn = document.getElementById('themeToggle');
+
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+}
+
+// Detect saved preference or OS preference
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme) {
+  applyTheme(savedTheme);
+} else {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(prefersDark ? 'dark' : 'light');
+}
+
+// Listen for OS theme change (auto sync)
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('theme')) {
+    applyTheme(e.matches ? 'dark' : 'light');
+  }
+});
+
+// Manual toggle
+toggleBtn.addEventListener('click', () => {
+  const isDark = root.classList.contains('dark');
+  const newTheme = isDark ? 'light' : 'dark';
+  applyTheme(newTheme);
+  localStorage.setItem('theme', newTheme);
+});
+
+// ================= TOTO LOGIC =================
+
+// --- SHA-256 hash (Web Crypto API) ---
+async function hashSeed(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.slice(0,4).reduce((acc, val, i) => acc + (val << (i*8)), 0);
+}
+
+// --- Deterministic PRNG (Mulberry32) ---
+function mulberry32(a) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+function generateCombination(rng, count, max) {
+  const numbers = new Set();
+  while (numbers.size < count) {
+    const n = Math.floor(rng() * max) + 1;
+    numbers.add(n);
+  }
+  return Array.from(numbers).sort((a,b)=>a-b);
+}
+
+function getGameConfig(game) {
+  switch(game) {
+    case "6/49": return {count:6, max:49};
+    case "5/35": return {count:5, max:35};
+    case "6/42": return {count:6, max:42};
+  }
+}
+
+function renderResults(combos) {
+  const container = document.getElementById("results");
+  container.innerHTML = "";
+
+  combos.forEach((combo, index) => {
+    const card = document.createElement("div");
+    card.className = "p-4 border rounded-xl bg-slate-50 dark:bg-slate-700 dark:border-slate-600";
+
+    const title = document.createElement("div");
+    title.className = "font-semibold mb-2";
+    title.textContent = `Колонка ${index+1}`;
+
+    const numbers = document.createElement("div");
+    numbers.className = "flex flex-wrap gap-2";
+
+    combo.forEach(n => {
+      const ball = document.createElement("div");
+      ball.className = "w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold";
+      ball.textContent = n;
+      numbers.appendChild(ball);
+    });
+
+    card.appendChild(title);
+    card.appendChild(numbers);
+    container.appendChild(card);
+  });
+}
+
+// --- Main generate ---
+document.getElementById("generate").addEventListener("click", async () => {
+  const game = document.getElementById("game").value;
+  const columns = Math.min(4, Math.max(1, parseInt(document.getElementById("columns").value) || 1));
+  const salt = document.getElementById("salt").value || "";
+
+  const timeSeed = Date.now().toString();
+  const combinedSeed = timeSeed + "|" + salt;
+
+  const numericSeed = await hashSeed(combinedSeed);
+  const rng = mulberry32(numericSeed);
+
+  const config = getGameConfig(game);
+
+  const combos = [];
+  for (let i=0;i<columns;i++) {
+    combos.push(generateCombination(rng, config.count, config.max));
+  }
+
+  document.getElementById("seedInfo").textContent =
+    `Seed: ${combinedSeed}`;
+
+  renderResults(combos);
+});
+</script>
+</body>
+</html>
