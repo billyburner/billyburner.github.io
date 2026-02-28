@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TOTO Генератор</title>
+  <title>TOTO Seed Проверка</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    // Enable class-based dark mode in Tailwind
     tailwind.config = {
       darkMode: 'class'
     };
@@ -14,12 +13,17 @@
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
   <div class="max-w-3xl w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl shadow-lg p-6 space-y-6 transition-colors duration-300">
+
     <div class="flex justify-between items-center">
-      <h1 class="text-2xl font-bold">🎲 Генератор за Тото комбинации</h1>
+      <h1 class="text-2xl font-bold">🔎 Проверка на Seed (Proof Mode)</h1>
       <button id="themeToggle" class="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:opacity-80 transition">
         🌙 / ☀️
       </button>
     </div>
+
+    <p class="text-sm text-slate-600 dark:text-slate-400 text-center">
+      Постави seed-а, който сайтът е показал, за да възпроизведеш същите комбинации.
+    </p>
 
     <div class="grid md:grid-cols-2 gap-4">
       <div>
@@ -32,27 +36,19 @@
       </div>
 
       <div>
-        <label class="font-medium">Брой колонки (1–4)</label>
+        <label class="font-medium">Брой колонки</label>
         <input id="columns" type="number" min="1" max="4" value="4" class="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-700 dark:border-slate-600" />
       </div>
     </div>
 
     <div>
-      <label class="font-medium">Допълнителна случайност ("сол" за seed)</label>
-      <input id="salt" type="text" placeholder="Напиши произволен текст..." class="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-700 dark:border-slate-600" />
+      <label class="font-medium">Seed</label>
+      <input id="seed" type="text" placeholder="пример: 1712345678901|abc" class="w-full mt-1 p-2 border rounded-lg bg-white dark:bg-slate-700 dark:border-slate-600" />
     </div>
 
-    <button id="generate" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition">
-      Генерирай числа
+    <button id="verify" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition">
+      Възпроизведи комбинациите
     </button>
-
-    <!-- Reverse verification button -->
-    <a href="https://billyburner.github.io/toto_seed_verifier.html" target="_blank"
-       class="w-full block text-center bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 font-semibold py-3 rounded-xl transition">
-      Обратна проверка
-    </a>
-
-    <div id="seedInfo" class="text-sm text-gray-500 dark:text-gray-400 text-center"></div>
 
     <div id="results" class="grid md:grid-cols-2 gap-4"></div>
   </div>
@@ -70,7 +66,7 @@ function applyTheme(theme) {
   }
 }
 
-// Detect saved preference or OS preference
+// Load saved theme or OS preference
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme) {
   applyTheme(savedTheme);
@@ -79,7 +75,7 @@ if (savedTheme) {
   applyTheme(prefersDark ? 'dark' : 'light');
 }
 
-// Listen for OS theme change (auto sync)
+// Auto sync with OS if user has not overridden
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
   if (!localStorage.getItem('theme')) {
     applyTheme(e.matches ? 'dark' : 'light');
@@ -94,9 +90,9 @@ toggleBtn.addEventListener('click', () => {
   localStorage.setItem('theme', newTheme);
 });
 
-// ================= TOTO LOGIC =================
+// ================= VERIFY LOGIC =================
 
-// --- SHA-256 hash (Web Crypto API) ---
+// --- SHA-256 hash ---
 async function hashSeed(text) {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
@@ -105,7 +101,7 @@ async function hashSeed(text) {
   return hashArray.slice(0,4).reduce((acc, val, i) => acc + (val << (i*8)), 0);
 }
 
-// --- Deterministic PRNG (Mulberry32) ---
+// --- Deterministic PRNG ---
 function mulberry32(a) {
   return function() {
     let t = a += 0x6D2B79F5;
@@ -149,7 +145,7 @@ function renderResults(combos) {
 
     combo.forEach(n => {
       const ball = document.createElement("div");
-      ball.className = "w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold";
+      ball.className = "w-10 h-10 flex items-center justify-center rounded-full bg-green-600 text-white font-bold";
       ball.textContent = n;
       numbers.appendChild(ball);
     });
@@ -160,27 +156,25 @@ function renderResults(combos) {
   });
 }
 
-// --- Main generate ---
-document.getElementById("generate").addEventListener("click", async () => {
+// --- Verify ---
+document.getElementById("verify").addEventListener("click", async () => {
+  const seed = document.getElementById("seed").value.trim();
+  if (!seed) {
+    alert("Моля въведи seed.");
+    return;
+  }
+
   const game = document.getElementById("game").value;
   const columns = Math.min(4, Math.max(1, parseInt(document.getElementById("columns").value) || 1));
-  const salt = document.getElementById("salt").value || "";
 
-  const timeSeed = Date.now().toString();
-  const combinedSeed = timeSeed + "|" + salt;
-
-  const numericSeed = await hashSeed(combinedSeed);
+  const numericSeed = await hashSeed(seed);
   const rng = mulberry32(numericSeed);
-
   const config = getGameConfig(game);
 
   const combos = [];
   for (let i=0;i<columns;i++) {
     combos.push(generateCombination(rng, config.count, config.max));
   }
-
-  document.getElementById("seedInfo").textContent =
-    `Seed: ${combinedSeed}`;
 
   renderResults(combos);
 });
